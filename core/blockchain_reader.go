@@ -422,6 +422,7 @@ func (bc *BlockChain) SubscribeChainEvent(ch chan<- ChainEvent) event.Subscripti
 
 // SubscribeChainHeadEvent registers a subscription of ChainHeadEvent.
 func (bc *BlockChain) SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription {
+	// LOUIs: interresing
 	return bc.scope.Track(bc.chainHeadFeed.Subscribe(ch))
 }
 

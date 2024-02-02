@@ -101,6 +101,8 @@ type EVM struct {
 	Context BlockContext
 	TxContext
 	// StateDB gives access to the underlying state
+
+	// LOUIS: here is stabe db
 	StateDB StateDB
 	// Depth is the current call stack
 	depth int

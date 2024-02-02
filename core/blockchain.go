@@ -227,6 +227,7 @@ type BlockChain struct {
 	chainHeadFeed event.Feed
 	logsFeed      event.Feed
 	blockProcFeed event.Feed
+	// LOUIS: add a state feed
 	scope         event.SubscriptionScope
 	genesisBlock  *types.Block
 
@@ -1470,6 +1471,8 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 
 	if status == CanonStatTy {
 		bc.chainFeed.Send(ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+
+		// LOUIS: add state feed
 		if len(logs) > 0 {
 			bc.logsFeed.Send(logs)
 		}

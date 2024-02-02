@@ -489,6 +489,7 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 	}
 }
 
+// LOUIS: things are likely to happen near here
 // handleCall processes method calls.
 func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
 	if msg.isSubscribe() {
