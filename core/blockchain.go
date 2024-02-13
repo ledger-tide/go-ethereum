@@ -261,6 +261,11 @@ type BlockChain struct {
 	vmConfig   vm.Config
 }
 
+func ExtractStateChanges() StateChangeEvent {
+	// TODO: Here we shouold write the logic of extracting all state changes
+	return StateChangeEvent{}
+}
+
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator
 // and Processor.
@@ -583,6 +588,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		log.Error("Current block not found in database", "block", header.Number, "hash", header.Hash())
 		return fmt.Errorf("current block missing: #%d [%x..]", header.Number, header.Hash().Bytes()[:4])
 	}
+	bc.stateChangeFeed.Send(ExtractStateChanges())
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 	return nil
 }
@@ -605,6 +611,7 @@ func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
 		log.Error("Current block not found in database", "block", header.Number, "hash", header.Hash())
 		return fmt.Errorf("current block missing: #%d [%x..]", header.Number, header.Hash().Bytes()[:4])
 	}
+	bc.stateChangeFeed.Send(ExtractStateChanges())
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 	return nil
 }
@@ -1522,6 +1529,7 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 		// we will fire an accumulated ChainHeadEvent and disable fire
 		// event here.
 		if emitHeadEvent {
+			bc.stateChangeFeed.Send(ExtractStateChanges())
 			bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 		}
 	} else {
@@ -1608,6 +1616,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 	// Fire a single chain head event if we've progressed the chain
 	defer func() {
 		if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
+			bc.stateChangeFeed.Send(ExtractStateChanges())
 			bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon})
 		}
 	}()
@@ -2354,6 +2363,7 @@ func (bc *BlockChain) SetCanonical(head *types.Block) (common.Hash, error) {
 	if len(logs) > 0 {
 		bc.logsFeed.Send(logs)
 	}
+	bc.stateChangeFeed.Send(ExtractStateChanges())
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: head})
 
 	context := []interface{}{
