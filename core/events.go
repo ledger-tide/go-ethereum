@@ -39,6 +39,7 @@ type ChainEvent struct {
 // I have no idea, how to do it in Go, just pseudo coding
 type StateChangeEvent struct {
 	// HashMap with <Contract => <Key-value>>
+	// blockNumber
 }
 
 type ChainSideEvent struct {

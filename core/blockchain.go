@@ -261,8 +261,13 @@ type BlockChain struct {
 	vmConfig   vm.Config
 }
 
-func ExtractStateChanges() StateChangeEvent {
+func extractStateChanges(state *state.StateDB) StateChangeEvent {
 	// TODO: Here we should write the logic of extracting all state changes
+	// If I understood correctly, this state object already contains all storage changes
+	// So, first, we need to iterate over Preimages()
+	// Then retirive all storatge/account changes using that preimage hashes:
+	// https://geth.ethereum.org/docs/faq
+
 	return StateChangeEvent{}
 }
 
@@ -588,7 +593,6 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		log.Error("Current block not found in database", "block", header.Number, "hash", header.Hash())
 		return fmt.Errorf("current block missing: #%d [%x..]", header.Number, header.Hash().Bytes()[:4])
 	}
-	bc.stateChangeFeed.Send(ExtractStateChanges())
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 	return nil
 }
@@ -611,7 +615,6 @@ func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
 		log.Error("Current block not found in database", "block", header.Number, "hash", header.Hash())
 		return fmt.Errorf("current block missing: #%d [%x..]", header.Number, header.Hash().Bytes()[:4])
 	}
-	bc.stateChangeFeed.Send(ExtractStateChanges())
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 	return nil
 }
@@ -1419,6 +1422,8 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	if err != nil {
 		return err
 	}
+	// Azamat: It seems like a good place to send state changes, because they are committed to the DB
+	bc.stateChangeFeed.Send(extractStateChanges(state))
 	// If node is running in path mode, skip explicit gc operation
 	// which is unnecessary in this mode.
 	if bc.triedb.Scheme() == rawdb.PathScheme {
@@ -1529,7 +1534,6 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 		// we will fire an accumulated ChainHeadEvent and disable fire
 		// event here.
 		if emitHeadEvent {
-			bc.stateChangeFeed.Send(ExtractStateChanges())
 			bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 		}
 	} else {
@@ -1616,7 +1620,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 	// Fire a single chain head event if we've progressed the chain
 	defer func() {
 		if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
-			bc.stateChangeFeed.Send(ExtractStateChanges())
 			bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon})
 		}
 	}()
@@ -2363,7 +2366,6 @@ func (bc *BlockChain) SetCanonical(head *types.Block) (common.Hash, error) {
 	if len(logs) > 0 {
 		bc.logsFeed.Send(logs)
 	}
-	bc.stateChangeFeed.Send(ExtractStateChanges())
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: head})
 
 	context := []interface{}{
