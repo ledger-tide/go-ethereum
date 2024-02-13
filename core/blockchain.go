@@ -262,7 +262,7 @@ type BlockChain struct {
 }
 
 func ExtractStateChanges() StateChangeEvent {
-	// TODO: Here we shouold write the logic of extracting all state changes
+	// TODO: Here we should write the logic of extracting all state changes
 	return StateChangeEvent{}
 }
 
