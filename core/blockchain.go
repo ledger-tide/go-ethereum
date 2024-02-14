@@ -219,15 +219,16 @@ type BlockChain struct {
 	//  * nil: disable tx reindexer/deleter, but still index new blocks
 	txLookupLimit uint64
 
-	hc            *HeaderChain
-	rmLogsFeed    event.Feed
-	chainFeed     event.Feed
-	chainSideFeed event.Feed
-	chainHeadFeed event.Feed
-	logsFeed      event.Feed
-	blockProcFeed event.Feed
-	scope         event.SubscriptionScope
-	genesisBlock  *types.Block
+	hc              *HeaderChain
+	rmLogsFeed      event.Feed
+	chainFeed       event.Feed
+	stateChangeFeed event.Feed
+	chainSideFeed   event.Feed
+	chainHeadFeed   event.Feed
+	logsFeed        event.Feed
+	blockProcFeed   event.Feed
+	scope           event.SubscriptionScope
+	genesisBlock    *types.Block
 
 	// This mutex synchronizes chain write operations.
 	// Readers don't need to take it, they can just read the database.
@@ -258,6 +259,16 @@ type BlockChain struct {
 	processor  Processor // Block transaction processor interface
 	forker     *ForkChoice
 	vmConfig   vm.Config
+}
+
+func extractStateChanges(state *state.StateDB) StateChangeEvent {
+	// TODO: Here we should write the logic of extracting all state changes
+	// If I understood correctly, this state object already contains all storage changes
+	// So, first, we need to iterate over Preimages()
+	// Then retirive all storatge/account changes using that preimage hashes:
+	// https://geth.ethereum.org/docs/faq
+
+	return StateChangeEvent{}
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -1193,7 +1204,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		// a background routine to re-indexed all indices in [ancients - txlookupLimit, ancients)
 		// range. In this case, all tx indices of newly imported blocks should be
 		// generated.
-		var batch = bc.db.NewBatch()
+		batch := bc.db.NewBatch()
 		for i, block := range blockChain {
 			if bc.txLookupLimit == 0 || ancientLimit <= bc.txLookupLimit || block.NumberU64() >= ancientLimit-bc.txLookupLimit {
 				rawdb.WriteTxLookupEntriesByBlock(batch, block)
@@ -1411,6 +1422,8 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	if err != nil {
 		return err
 	}
+	// Azamat: It seems like a good place to send state changes, because they are committed to the DB
+	bc.stateChangeFeed.Send(extractStateChanges(state))
 	// If node is running in path mode, skip explicit gc operation
 	// which is unnecessary in this mode.
 	if bc.triedb.Scheme() == rawdb.PathScheme {

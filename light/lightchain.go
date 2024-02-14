@@ -508,6 +508,11 @@ func (lc *LightChain) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subsc
 	return lc.scope.Track(lc.chainFeed.Subscribe(ch))
 }
 
+// SubscribeStateChangeEvent registers a subscription of ChainEvent.
+func (lc *LightChain) SubscribeStateChangeEvent(ch chan<- core.StateChangeEvent) event.Subscription {
+	return lc.scope.Track(lc.chainFeed.Subscribe(ch))
+}
+
 // SubscribeChainHeadEvent registers a subscription of ChainHeadEvent.
 func (lc *LightChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return lc.scope.Track(lc.chainHeadFeed.Subscribe(ch))
